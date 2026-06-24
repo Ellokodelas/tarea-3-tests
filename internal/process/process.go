@@ -271,8 +271,12 @@ func (p *Process) execInstruction(line string) (result string, changed bool) {
 		producto := parts[len(parts)-2]
 		persona := strings.Join(parts[1:len(parts)-2], " ")
 		res := p.st.Buy(persona, producto, cantidad)
-		pardoned := p.st.DecrementVetos()
-		didChange := res == "VALIDO" || len(pardoned) > 0
+		// DecrementVetos ahora devuelve (pardoned, anyChanged). anyChanged es
+		// true si había al menos un veto activo (aunque nadie llegara a 0),
+		// garantizando que el broadcast ocurra siempre que el estado de vetos
+		// se haya modificado, evitando divergencia de counters entre procesos.
+		_, vetoChanged := p.st.DecrementVetos()
+		didChange := res == "VALIDO" || vetoChanged
 		return res, didChange
 
 	case "PERDONAR":

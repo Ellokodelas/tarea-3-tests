@@ -153,13 +153,17 @@ func (s *Store) Pardon(persona string) {
 
 // DecrementVetos reduce en 1 el counter de todos los vetos activos, y
 // perdona (elimina) automáticamente a quienes lleguen a 0.
-// Entrada: ninguna. Salida: slice de personas perdonadas automáticamente.
-func (s *Store) DecrementVetos() []string {
+// Entrada: ninguna.
+// Salida: slice de personas perdonadas automáticamente, y un bool que indica
+// si hubo cualquier cambio en los counters (incluso sin llegar a 0). Este
+// segundo valor permite al caller saber si debe hacer broadcast aunque nadie
+// haya sido perdonado, evitando divergencia de estado entre procesos.
+func (s *Store) DecrementVetos() (pardoned []string, anyChanged bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	var pardoned []string
 	for p, c := range s.vetos {
 		c--
+		anyChanged = true // hubo al menos un decremento: el estado cambió
 		if c <= 0 {
 			delete(s.vetos, p)
 			pardoned = append(pardoned, p)
@@ -167,7 +171,7 @@ func (s *Store) DecrementVetos() []string {
 			s.vetos[p] = c
 		}
 	}
-	return pardoned
+	return
 }
 
 // GetVetos devuelve la lista de vetos activos como slice.
