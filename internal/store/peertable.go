@@ -62,7 +62,7 @@ func (t *PeerTable) peerFilePath(key PeerKey) string {
 }
 
 // Update guarda o reemplaza la copia conocida de un proceso específico,
-// tanto en memoria como en disco.
+// tanto en memoria como en disco (sincrónico para garantizar persistencia).
 // Entrada: PeerKey del proceso emisor, inventario y vetos reportados.
 // Salida: ninguna.
 func (t *PeerTable) Update(key PeerKey, inventory []Item, vetos []VetoEntry) {
@@ -76,8 +76,9 @@ func (t *PeerTable) Update(key PeerKey, inventory []Item, vetos []VetoEntry) {
 	t.data[key] = snap
 	t.mu.Unlock()
 
-	// Persistir en disco de forma asíncrona para no bloquear el push.
-	go t.saveToDisk(key, snap)
+	// Sincrónico: garantiza que la copia quede en disco antes de retornar,
+	// para que sobreviva si el proceso es matado justo después del push.
+	t.saveToDisk(key, snap)
 }
 
 // saveToDisk escribe la snapshot de un peer a su archivo JSON.

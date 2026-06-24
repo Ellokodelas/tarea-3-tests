@@ -330,8 +330,10 @@ func (p *Process) Recover() {
 	}
 
 	bestInv, bestVetos, bestCount := majorityState(replies)
-	// El total del sistema es allPeers + este proceso mismo (que no se consulta).
-	total := len(p.allPeers) + 1
+	// El total de procesos consultables es len(allPeers): este proceso no
+	// puede consultarse a sí mismo (acaba de reiniciarse sin inventario),
+	// así que el máximo posible de respuestas es exactamente len(allPeers).
+	total := len(p.allPeers)
 	threshold := float64(total) * 2.0 / 3.0
 
 	if float64(bestCount) < threshold {
