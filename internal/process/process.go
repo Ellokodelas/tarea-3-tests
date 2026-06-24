@@ -233,6 +233,12 @@ func (p *Process) runInstructions() {
 		}
 	}
 	p.writeVetoLog()
+
+	// Broadcast final al terminar todas las instrucciones: garantiza que
+	// todos los peers tengan el estado definitivo y consistente del proceso,
+	// independientemente de si algún broadcast intermedio llegó en mal momento.
+	p.broadcastInventory()
+	log.Printf("[P%d] Broadcast final de inventario y vetos completado.", p.ProcessID)
 }
 
 // execInstruction parsea y ejecuta una instrucción de texto (VETAR,
