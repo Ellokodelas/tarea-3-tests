@@ -55,7 +55,7 @@ func New(machineID, processID int, instructFile string, allPeers []PeerAddr, por
 		ProcessID:    processID,
 		instructFile: instructFile,
 		st:           store.New(invPath),
-		peerTable:    store.NewPeerTable(),
+		peerTable:    store.NewPeerTable(machineID, processID),
 		server:       grpcapi.NewServer(port),
 		allPeers:     allPeers,
 		logPath:      fmt.Sprintf("logs/inventario_M%dP%d.log", machineID, processID),
@@ -330,7 +330,8 @@ func (p *Process) Recover() {
 	}
 
 	bestInv, bestVetos, bestCount := majorityState(replies)
-	total := len(p.allPeers)
+	// El total del sistema es allPeers + este proceso mismo (que no se consulta).
+	total := len(p.allPeers) + 1
 	threshold := float64(total) * 2.0 / 3.0
 
 	if float64(bestCount) < threshold {

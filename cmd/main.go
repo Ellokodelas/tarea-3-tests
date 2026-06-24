@@ -23,10 +23,10 @@ var machineIPs = map[int]string{
 }
 
 // totalProcesosPorMaquina define cuántos procesos lógicos existen en CADA
-// máquina, usado para construir la lista completa de peers del sistema.
-// Debe coincidir con la cantidad de procesos que efectivamente se levanten
-// en cada VM (mismo valor pasado a ./script.sh <MAQUINA> <N>).
-const totalProcesosPorMaquina = 7
+// máquina. Se lee desde el archivo .num_procesos que script.sh genera al
+// iniciar, para evitar que quede hardcodeado y se intenten conectar procesos
+// inexistentes.
+var totalProcesosPorMaquina = readNumProcesos()
 
 // basePort calcula el puerto gRPC de un proceso a partir de su máquina y su
 // ID (ej: M1P1 -> 8001, M2P3 -> 8103).
@@ -54,6 +54,22 @@ func buildAllPeers(myMachine, myProcess int) []process.PeerAddr {
 		}
 	}
 	return peers
+}
+
+// readNumProcesos lee cuántos procesos se configuraron por máquina desde el
+// archivo .num_procesos (escrito por script.sh al iniciar). Si no existe,
+// devuelve 1 como valor conservador para no conectarse a procesos inexistentes.
+// Entrada: ninguna. Salida: int con la cantidad de procesos por máquina.
+func readNumProcesos() int {
+	data, err := os.ReadFile(".num_procesos")
+	if err != nil {
+		return 1
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil || n < 1 {
+		return 1
+	}
+	return n
 }
 
 // findInstructionFile busca en instrucciones/ el archivo terminado en

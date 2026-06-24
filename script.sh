@@ -40,6 +40,10 @@ start_processes() {
     local N=$2
     [ -f "$BINARY" ] || build_binary
 
+    # Guardar cuántos procesos se lanzan por máquina para que el binario
+    # no intente contactar procesos que no existen.
+    echo "$N" > .num_procesos
+
     for ID in $(seq 1 "$N"); do
         local PFILE
         PFILE=$(pid_file "$MAQUINA" "$ID")
