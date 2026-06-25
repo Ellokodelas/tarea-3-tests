@@ -18,14 +18,17 @@ message VetoEntry {
 }
 
 // InventoryUpdate es el mensaje que un proceso envía cada vez que su propio
-// inventario cambia (al nacer, y tras cada instrucción que lo modifique),
-// para que TODOS los demás procesos del sistema actualicen su copia de
-// solo lectura de ese proceso específico.
+// inventario o vetos cambian (al nacer, y tras cada instrucción que los
+// modifique), para que TODOS los demás procesos actualicen su copia.
+// seq es un número de secuencia monotónico (Unix nanosegundos del emisor)
+// que permite a los receptores descartar actualizaciones stale que lleguen
+// fuera de orden por la red.
 message InventoryUpdate {
   int32 machine_id = 1;
   int32 process_id = 2;
   repeated Item inventory = 3;
   repeated VetoEntry vetos = 4;
+  int64 seq = 5;
 }
 
 // Ack es una confirmación simple de recepción.
@@ -58,20 +61,15 @@ message HealthReply {
 }
 
 // ExpendedoraService es el servicio gRPC que cada proceso expone para
-// comunicarse con todos los demás procesos del sistema (de su misma
-// máquina o de otras), sin jerarquía de líder ni agrupación por réplicas.
+// comunicarse con todos los demás procesos del sistema.
 service ExpendedoraService {
   // Health permite comprobar disponibilidad antes de intentar otras llamadas.
   rpc Health(HealthRequest) returns (HealthReply);
 
   // PushInventory es invocado por un proceso para informar a este proceso
-  // que su propio inventario (el del emisor) cambió, para que este proceso
-  // actualice su copia de solo lectura correspondiente.
+  // que su propio inventario o vetos (del emisor) cambiaron.
   rpc PushInventory(InventoryUpdate) returns (Ack);
 
-  // QueryInventory es invocado durante la recuperación de un proceso caído:
-  // pregunta a este proceso qué copia tiene almacenada del proceso que se
-  // está recuperando. Si la máquina de este proceso está infectada,
-  // responde con datos falsos.
+  // QueryInventory es invocado durante la recuperación de un proceso caído.
   rpc QueryInventory(InventoryQuery) returns (InventoryQueryReply);
 }

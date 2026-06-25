@@ -143,8 +143,14 @@ func (p *Process) waitForPeers() {
 // por si algún peer no estaba listo al primer intento.
 // Entrada: ninguna. Salida: ninguna (loguea errores, no es fatal).
 func (p *Process) broadcastInventory() {
+	// El snapshot y el seq se capturan ANTES de lanzar las goroutines, para
+	// que todos los peers reciban exactamente el mismo estado y el mismo número
+	// de secuencia, sin importar cuándo ejecute cada goroutine. Así, si un
+	// reintento llega tarde a algún peer, el receptor lo descarta porque su
+	// seq ya es mayor (guardado de un broadcast posterior).
 	invItems := toProtoItems(p.st.GetInventory())
 	vetoItems := toProtoVetos(p.st.GetVetos())
+	seq := time.Now().UnixNano()
 
 	for _, peer := range p.allPeers {
 		go func(peer PeerAddr) {
@@ -156,7 +162,7 @@ func (p *Process) broadcastInventory() {
 			defer c.Close()
 
 			for attempt := 1; attempt <= 10; attempt++ {
-				err := c.PushInventory(p.MachineID, p.ProcessID, invItems, vetoItems)
+				err := c.PushInventory(p.MachineID, p.ProcessID, invItems, vetoItems, seq)
 				if err == nil {
 					return
 				}
@@ -174,9 +180,9 @@ func (p *Process) broadcastInventory() {
 // RESPONDE/ENVÍA, no lo que registra de otros).
 // Entrada: machineID/processID del emisor, su inventario y vetos.
 // Salida: ninguna.
-func (p *Process) handlePush(machineID, processID int, inventory []*grpcapi.Item, vetos []*grpcapi.VetoEntry) {
+func (p *Process) handlePush(machineID, processID int, inventory []*grpcapi.Item, vetos []*grpcapi.VetoEntry, seq int64) {
 	key := store.PeerKey{MachineID: machineID, ProcessID: processID}
-	p.peerTable.Update(key, fromProtoItems(inventory), fromProtoVetos(vetos))
+	p.peerTable.Update(key, fromProtoItems(inventory), fromProtoVetos(vetos), seq)
 }
 
 // handleQuery responde una consulta sobre el inventario de un proceso

@@ -12,7 +12,7 @@ import (
 // PushHandler procesa una actualización de inventario recibida de otro
 // proceso. Se inyecta desde el paquete process para mantener esta capa
 // enfocada solo en transporte gRPC.
-type PushHandler func(machineID, processID int, inventory []*Item, vetos []*VetoEntry)
+type PushHandler func(machineID, processID int, inventory []*Item, vetos []*VetoEntry, seq int64)
 
 // QueryHandler responde una consulta sobre el inventario de un proceso
 // específico. Se inyecta desde el paquete process.
@@ -68,7 +68,7 @@ func (s *Server) Health(ctx context.Context, req *HealthRequest) (*HealthReply, 
 // Salida: Ack{Ok: true}.
 func (s *Server) PushInventory(ctx context.Context, req *InventoryUpdate) (*Ack, error) {
 	if s.OnPush != nil {
-		s.OnPush(int(req.MachineId), int(req.ProcessId), req.Inventory, req.Vetos)
+		s.OnPush(int(req.MachineId), int(req.ProcessId), req.Inventory, req.Vetos, req.Seq)
 	}
 	return &Ack{Ok: true}, nil
 }

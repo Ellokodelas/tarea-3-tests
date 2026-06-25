@@ -56,7 +56,7 @@ func (c *Client) WaitHealthy(maxAttempts int, delay time.Duration) bool {
 // PushInventory envía este inventario y vetos al proceso remoto, vía el RPC
 // PushInventory, para que actualice su copia de solo lectura de este proceso.
 // Entrada: machineID/processID propios, inventario, vetos. Salida: error de RPC.
-func (c *Client) PushInventory(machineID, processID int, inventory []*Item, vetos []*VetoEntry) error {
+func (c *Client) PushInventory(machineID, processID int, inventory []*Item, vetos []*VetoEntry, seq int64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	_, err := c.rpc.PushInventory(ctx, &InventoryUpdate{
@@ -64,6 +64,7 @@ func (c *Client) PushInventory(machineID, processID int, inventory []*Item, veto
 		ProcessId: int32(processID),
 		Inventory: inventory,
 		Vetos:     vetos,
+		Seq:       seq,
 	})
 	return err
 }
